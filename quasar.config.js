@@ -18,7 +18,7 @@ module.exports = configure(function (/* ctx */) {
       // exclude: [],
       // rawOptions: {},
       warnings: true,
-      errors: true,
+      errors: false,
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
@@ -107,7 +107,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: [],
+      plugins: ['Dialog'],
     },
 
     // animations: 'all', // --- includes all animations

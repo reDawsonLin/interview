@@ -1,11 +1,138 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { QTableProps } from 'quasar';
+import { useIndexPage } from 'src/stores/indexPage';
+import { storeToRefs } from 'pinia';
+import { useCloned } from '@vueuse/core';
+import { useQuasar } from 'quasar';
+
+// interface btnType {
+//   label: string;
+//   icon: string;
+//   status: string;
+// }
+const $q = useQuasar();
+
+const store_indexPage = useIndexPage();
+const { data_get } = storeToRefs(store_indexPage);
+const { getTest, postTest, deleteTest } = store_indexPage;
+
+onMounted(async () => {
+  await refresh();
+});
+
+async function refresh() {
+  await getTest();
+  blockData.value = data_get.value.data;
+}
+
+const blockData = ref();
+const init_tempData = {
+  name: '',
+  age: '',
+};
+const { cloned: tempData, sync: initTempData } = useCloned(init_tempData);
+
+const nameRef = ref(null);
+const ageRef = ref(null);
+const status = ref('post');
+
+const onSubmit = async () => {
+  nameRef.value.validate();
+  ageRef.value.validate();
+
+  if (nameRef.value.hasError || ageRef.value.hasError) return;
+
+  if (status.value === 'post') {
+    await postData();
+  } else {
+    await putData();
+  }
+};
+
+async function postData() {
+  const result = await postTest(tempData.value);
+
+  if (result) {
+    blockData.value.push(tempData.value);
+    initTempData();
+  }
+}
+
+async function putData() {
+  console.log('tempData :>> ', tempData.value);
+}
+
+async function handleClickOption(btn, data) {
+  if (btn.status === 'delete') {
+    $q.dialog({
+      title: '提示',
+      message: '是否確定刪除該筆資料',
+      cancel: true,
+      persistent: true,
+    })
+      .onOk(async() => {
+        const res = await deleteTest(data.id);
+        if (res.data) refresh();
+      })
+  }
+}
+
+const tableConfig = ref([
+  {
+    label: '姓名',
+    name: 'name',
+    field: 'name',
+    align: 'left',
+  },
+  {
+    label: '年齡',
+    name: 'age',
+    field: 'age',
+    align: 'left',
+  },
+]);
+const tableButtons = ref([
+  {
+    label: '編輯',
+    icon: 'edit',
+    status: 'edit',
+  },
+  {
+    label: '刪除',
+    icon: 'delete',
+    status: 'delete',
+  },
+]);
+</script>
+
 <template>
   <q-page class="row q-pt-xl">
     <div class="full-width q-px-xl">
-      <div class="q-mb-xl">
-        <q-input v-model="tempData.name" label="姓名" />
-        <q-input v-model="tempData.age" label="年齡" />
-        <q-btn color="primary" class="q-mt-md">新增</q-btn>
-      </div>
+      <form @submit.prevent.stop="onSubmit" class="q-mb-xl">
+        <q-input
+          ref="nameRef"
+          v-model="tempData.name"
+          label="姓名"
+          :rules="[(val) => (val && val.length > 0) || 'Please type something']"
+        />
+        <q-input
+          ref="ageRef"
+          type="number"
+          v-model="tempData.age"
+          label="年齡"
+          :rules="[
+            (val) => (val !== null && val !== '') || 'Please type your age',
+            (val) => (val > 0 && val < 170) || 'Please type a real age',
+          ]"
+        />
+        <q-input
+          v-model="tempData.age"
+          label="年齡"
+          :rules="[(val) => !!val || 'Field is required']"
+        />
+        <q-btn type="submit" color="primary" class="q-mt-md">新增</q-btn>
+      </form>
 
       <q-table
         flat
@@ -28,6 +155,7 @@
         </template>
 
         <template v-slot:body="props">
+          <!-- <pre>{{ props }}</pre> -->
           <q-tr :props="props">
             <q-td
               v-for="col in props.cols"
@@ -63,6 +191,7 @@
             </q-td>
           </q-tr>
         </template>
+
         <template v-slot:no-data="{ icon }">
           <div
             class="full-width row flex-center items-center text-primary q-gutter-sm"
@@ -76,57 +205,6 @@
     </div>
   </q-page>
 </template>
-
-<script setup lang="ts">
-import axios from 'axios';
-import { QTableProps } from 'quasar';
-import { ref } from 'vue';
-interface btnType {
-  label: string;
-  icon: string;
-  status: string;
-}
-const blockData = ref([
-  {
-    name: 'test',
-    age: 25,
-  },
-]);
-const tableConfig = ref([
-  {
-    label: '姓名',
-    name: 'name',
-    field: 'name',
-    align: 'left',
-  },
-  {
-    label: '年齡',
-    name: 'age',
-    field: 'age',
-    align: 'left',
-  },
-]);
-const tableButtons = ref([
-  {
-    label: '編輯',
-    icon: 'edit',
-    status: 'edit',
-  },
-  {
-    label: '刪除',
-    icon: 'delete',
-    status: 'delete',
-  },
-]);
-
-const tempData = ref({
-  name: '',
-  age: '',
-});
-function handleClickOption(btn, data) {
-  // ...
-}
-</script>
 
 <style lang="scss" scoped>
 .q-table th {
